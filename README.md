@@ -1,4 +1,4 @@
-# Infrasity Sales Sync — Setup Guide
+# Infrasity Sales Sync: Setup Guide
 **Auto-syncs your Google Sheet → salesData.js every day at 4:00 AM IST**
 
 ---
