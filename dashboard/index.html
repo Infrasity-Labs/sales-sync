@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infrasity · Sales Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:       #07090f;
+  --surface:  #0d1117;
+  --card:     #111520;
+  --border:   #1c2236;
+  --border2:  #252d42;
+  --text:     #dde3f0;
+  --muted:    #5a6480;
+  --dim:      #3a4260;
+  --accent:   #4f8ef7;
+  --green:    #34d399;
+  --yellow:   #fbbf24;
+  --red:      #f87171;
+  --purple:   #a78bfa;
+  --font-head: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── SCROLLBAR ───────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+
+/* ── TOPBAR ──────────────────────────────────────────── */
+#topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(7,9,15,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px;
+  height: 52px;
+  gap: 24px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.brand-dot {
+  width: 7px; height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulse 2.5s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; box-shadow: 0 0 6px var(--accent); }
+  50%      { opacity:.6; box-shadow: 0 0 14px var(--accent); }
+}
+.sync-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.sync-badge span { color: var(--green); }
+
+nav {
+  display: flex; gap: 2px;
+  overflow-x: auto; flex: 1;
+}
+nav::-webkit-scrollbar { height: 0; }
+.tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+  border: none; background: none;
+}
+.tab:hover { color: var(--text); background: var(--border); }
+.tab.active { color: var(--text); background: var(--card); }
+
+/* ── LAYOUT ──────────────────────────────────────────── */
+main { max-width: 1280px; margin: 0 auto; padding: 28px 24px 64px; }
+section { display: none; }
+section.active { display: block; }
+
+/* ── SECTION HEADER ──────────────────────────────────── */
+.sec-title {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 20px;
+  color: var(--text);
+  display: flex; align-items: center; gap: 10px;
+}
+.sec-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 18px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.sub-title {
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 28px 0 12px;
+}
+
+/* ── STAT CARDS ──────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0.4;
+}
+.stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.stat-val {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text);
+}
+.stat-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.stat-card.green  .stat-val { color: var(--green); }
+.stat-card.yellow .stat-val { color: var(--yellow); }
+.stat-card.accent .stat-val { color: var(--accent); }
+
+/* ── PROGRESS BAR ────────────────────────────────────── */
+.progress-wrap { margin-top: 8px; }
+.progress-track {
+  height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+  transition: width .8s cubic-bezier(.16,1,.3,1);
+}
+
+/* ── TABLE ───────────────────────────────────────────── */
+.table-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+thead th {
+  background: var(--surface);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(79,142,247,.04); }
+tbody td {
+  padding: 10px 14px;
+  vertical-align: middle;
+}
+.mono { font-family: var(--font-mono); font-size: 12px; }
+
+/* ── RATE BARS ───────────────────────────────────────── */
+.rate-cell { display: flex; align-items: center; gap: 8px; min-width: 90px; }
+.rate-bar-bg {
+  flex: 1; height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  min-width: 50px;
+}
+.rate-bar { height: 100%; border-radius: 2px; }
+.rate-num { font-family: var(--font-mono); font-size: 12px; width: 34px; text-align: right; }
+
+/* ── BADGE ───────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.badge-green  { background: rgba(52,211,153,.12); color: var(--green);  border: 1px solid rgba(52,211,153,.2); }
+.badge-yellow { background: rgba(251,191,36,.12);  color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+.badge-red    { background: rgba(248,113,113,.12); color: var(--red);    border: 1px solid rgba(248,113,113,.2); }
+.badge-blue   { background: rgba(79,142,247,.12);  color: var(--accent); border: 1px solid rgba(79,142,247,.2); }
+.badge-purple { background: rgba(167,139,250,.12); color: var(--purple); border: 1px solid rgba(167,139,250,.2); }
+.badge-dim    { background: rgba(90,100,128,.1);   color: var(--muted);  border: 1px solid rgba(90,100,128,.2); }
+
+/* ── SCORE DOTS ──────────────────────────────────────── */
+.scores { display: flex; gap: 3px; }
+.score-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--border2);
+}
+.score-dot.filled { background: var(--accent); }
+.score-dot.half   { background: var(--yellow); }
+
+/* ── LEAK CARDS ──────────────────────────────────────── */
+.leaks-grid { display: flex; flex-direction: column; gap: 10px; }
+.leak-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 90px 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.leak-card.critical { border-left: 3px solid var(--red); }
+.leak-card.warning  { border-left: 3px solid var(--yellow); }
+.leak-card.info     { border-left: 3px solid var(--accent); }
+.leak-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.leak-title {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.leak-detail {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.leak-fix {
+  font-size: 12px;
+  color: var(--green);
+  background: rgba(52,211,153,.06);
+  border: 1px solid rgba(52,211,153,.12);
+  border-radius: 6px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+.leak-fix-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 3px;
+  opacity: .7;
+}
+
+/* ── NEXT STEPS ──────────────────────────────────────── */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+}
+.step-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.step-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+}
+.step-title {
+  font-weight: 600;
+  font-size: 13px;
+  flex: 1;
+}
+.step-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.step-body {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── CHART CONTAINER ─────────────────────────────────── */
+.chart-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.chart-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.chart-canvas-wrap { height: 220px; position: relative; }
+
+/* ── GRID 2COL ───────────────────────────────────────── */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 800px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .leak-card { grid-template-columns: 1fr; }
+}
+
+/* ── VERTICAL CARDS ──────────────────────────────────── */
+.verticals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.v-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.v-name {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.v-stats { display: flex; flex-direction: column; gap: 6px; }
+.v-stat-row { display: flex; align-items: center; gap: 8px; }
+.v-stat-label { font-size: 11px; color: var(--muted); width: 50px; flex-shrink: 0; }
+.v-bar-bg { flex: 1; height: 5px; background: var(--border2); border-radius: 3px; overflow: hidden; }
+.v-bar { height: 100%; border-radius: 3px; }
+.v-pct { font-family: var(--font-mono); font-size: 11px; color: var(--text); width: 30px; text-align: right; }
+
+/* ── HYPER CARDS ─────────────────────────────────────── */
+.hyper-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+.hyper-company {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.hyper-note { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.hyper-signals {
+  font-size: 12px;
+  color: var(--muted);
+}
+.hyper-signals strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.outcome-booked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(52,211,153,.08);
+  border: 1px solid rgba(52,211,153,.2);
+  border-radius: 8px;
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green);
+  text-align: center;
+  gap: 6px;
+}
+
+/* ── PIPELINE TARGETS ────────────────────────────────── */
+.pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.pipe-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.pipe-priority {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  margin-top: 5px; flex-shrink: 0;
+}
+.pipe-company { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.pipe-signal  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ── NEW VERTICALS ───────────────────────────────────── */
+.nv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.nv-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.nv-name {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.nv-why  { font-size: 12px; color: var(--text); line-height: 1.5; margin-bottom: 8px; }
+.nv-signal { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* ── EMPTY STATE ─────────────────────────────────────── */
+.empty {
+  text-align: center; padding: 40px;
+  color: var(--muted); font-size: 13px;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="brand">
+    <div class="brand-dot"></div>
+    INFRASITY
+  </div>
+  <nav id="nav">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="campaigns">Campaigns</button>
+    <button class="tab" data-tab="verticals">Verticals</button>
+    <button class="tab" data-tab="pitches">Pitch Analysis</button>
+    <button class="tab" data-tab="pipeline">Pipeline Leaks</button>
+    <button class="tab" data-tab="strategy">Strategy</button>
+  </nav>
+  <div class="sync-badge">Synced <span id="sync-time">—</span></div>
+</div>
+
+<main>
+
+  <!-- ── OVERVIEW ─────────────────────────────── -->
+  <section id="overview" class="active">
+    <div class="stats-row" id="stat-cards"></div>
+    <div class="grid-2">
+      <div class="chart-wrap">
+        <div class="chart-title">Email Volume — Prospects per Campaign</div>
+        <div class="chart-canvas-wrap"><canvas id="emailChart"></canvas></div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Open Rate per Campaign (%)</div>
+        <div class="chart-canvas-wrap"><canvas id="openChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">LinkedIn Outreach Volume (Messages Sent)</div>
+      <div class="chart-canvas-wrap" style="height:180px"><canvas id="liChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ── CAMPAIGNS ────────────────────────────── -->
+  <section id="campaigns">
+    <div class="sec-title">Campaign Performance</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campaign</th>
+            <th>Sent</th>
+            <th>Opened</th>
+            <th>Clicked</th>
+            <th style="min-width:130px">Open Rate</th>
+            <th style="min-width:130px">Click Rate</th>
+            <th>Unsub</th>
+            <th>Bounced</th>
+          </tr>
+        </thead>
+        <tbody id="campaigns-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── VERTICALS ─────────────────────────────── -->
+  <section id="verticals">
+    <div class="sec-title">Vertical Performance</div>
+    <div class="verticals-grid" id="verticals-grid"></div>
+    <div class="sub-title" style="margin-top:28px">Full Table</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Vertical</th>
+            <th style="min-width:130px">Open Rate</th>
+            <th style="min-width:130px">Click Rate</th>
+            <th>Meetings</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="verticals-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── PITCHES ───────────────────────────────── -->
+  <section id="pitches">
+    <div class="sec-title">Pitch Analysis</div>
+    <div class="sub-title">Email Pitches</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Vertical</th>
+            <th>Subject Line</th>
+            <th title="Relevance">R</th>
+            <th title="Specificity">S</th>
+            <th title="Action">A</th>
+            <th title="Memorability">M</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody id="email-pitches-tbody"></tbody>
+      </table>
+    </div>
+    <div class="sub-title">LinkedIn Pitches</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Vertical</th>
+            <th>Opening Line</th>
+            <th title="Relevance">R</th>
+            <th title="Specificity">S</th>
+            <th title="Action">A</th>
+            <th title="Memorability">M</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody id="li-pitches-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── PIPELINE LEAKS ────────────────────────── -->
+  <section id="pipeline">
+    <div class="sec-title">Pipeline Leaks</div>
+    <div class="leaks-grid" id="leaks-grid"></div>
+    <div class="sub-title" style="margin-top:28px">Action Plan</div>
+    <div class="steps-grid" id="steps-grid"></div>
+  </section>
+
+  <!-- ── STRATEGY ──────────────────────────────── -->
+  <section id="strategy">
+    <div class="sec-title">Strategy</div>
+    <div class="sub-title">Hyper-Personalised Wins</div>
+    <div id="hyper-emails"></div>
+    <div class="sub-title">Hyper Pipeline Targets</div>
+    <div class="pipeline-grid" id="hyper-pipeline"></div>
+    <div class="sub-title">New Vertical Opportunities</div>
+    <div class="nv-grid" id="new-verticals"></div>
+  </section>
+
+</main>
+
+<script src="data/salesData.js"></script>
+<script>
+// ── HELPERS ──────────────────────────────────────────────────────
+function rateColor(pct) {
+  if (pct >= 60) return '#34d399';
+  if (pct >= 40) return '#4f8ef7';
+  if (pct >= 20) return '#fbbf24';
+  return '#f87171';
+}
+function scoreBar(val, max = 8) {
+  const dots = Array.from({length: max}, (_, i) =>
+    `<span class="score-dot ${i < val ? 'filled' : ''}"></span>`
+  ).join('');
+  return `<div class="scores">${dots}</div>`;
+}
+function verdictBadge(v) {
+  const map = { strong:'badge-green', average:'badge-yellow', rework:'badge-red' };
+  return `<span class="badge ${map[v] || 'badge-dim'}">${v}</span>`;
+}
+function priorityBadge(p) {
+  const map = { P0:'badge-red', P1:'badge-yellow', P2:'badge-blue' };
+  return `<span class="badge ${map[p] || 'badge-dim'}">${p}</span>`;
+}
+function opportunityBadge(o) {
+  const map = { high:'badge-green', medium:'badge-yellow', low:'badge-dim' };
+  return `<span class="badge ${map[o] || 'badge-dim'}">${o}</span>`;
+}
+function rateBar(pct, color) {
+  return `<div class="rate-cell">
+    <div class="rate-bar-bg"><div class="rate-bar" style="width:${Math.min(pct,100)}%;background:${color}"></div></div>
+    <div class="rate-num" style="color:${color}">${pct}%</div>
+  </div>`;
+}
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── TABS ──────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── INIT (after salesData.js loads) ──────────────────────────────
+(function init() {
+  // Sync time
+  document.getElementById('sync-time').textContent = META.lastUpdated;
+
+  // ── STAT CARDS ─────────────────────────────────────────────────
+  const avgOpen  = Math.round(yammCampaigns.reduce((s,c) => s + c.openRate, 0) / yammCampaigns.length);
+  const avgClick = Math.round(yammCampaigns.reduce((s,c) => s + c.clickRate, 0) / yammCampaigns.length);
+  const meetPct  = Math.round((META.currentMonthMeetings / META.targetMeetings) * 100);
+
+  const statCards = [
+    { label:'Total Prospects', val: META.totalProspects.toLocaleString(), cls:'accent' },
+    { label:'Campaigns', val: META.totalCampaigns, cls:'' },
+    { label:'Avg Open Rate', val: avgOpen + '%', cls:'green' },
+    { label:'Avg Click Rate', val: avgClick + '%', cls:'' },
+    { label:'Meetings This Month', val: META.currentMonthMeetings + ' / ' + META.targetMeetings, cls:'yellow',
+      sub: `<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:${meetPct}%"></div></div></div>` },
+  ];
+
+  document.getElementById('stat-cards').innerHTML = statCards.map(c => `
+    <div class="stat-card ${c.cls}">
+      <div class="stat-label">${c.label}</div>
+      <div class="stat-val">${c.val}</div>
+      ${c.sub ? c.sub : `<div class="stat-sub">&nbsp;</div>`}
+    </div>
+  `).join('');
+
+  // ── CAMPAIGNS TABLE ────────────────────────────────────────────
+  const sorted = [...yammCampaigns].sort((a,b) => b.openRate - a.openRate);
+  document.getElementById('campaigns-tbody').innerHTML = sorted.map(c => `
+    <tr>
+      <td><span style="font-weight:500">${esc(c.name)}</span>${c.date ? ` <span class="mono" style="color:var(--muted);font-size:10px;">${esc(c.date)}</span>` : ''}</td>
+      <td class="mono">${c.sent}</td>
+      <td class="mono">${c.opened}</td>
+      <td class="mono">${c.clicked}</td>
+      <td>${rateBar(c.openRate,  rateColor(c.openRate))}</td>
+      <td>${rateBar(c.clickRate, rateColor(c.clickRate * 3))}</td>
+      <td class="mono" style="color:${c.unsubscribed>0?'var(--yellow)':'var(--muted)'}">${c.unsubscribed}</td>
+      <td class="mono" style="color:${c.bounced>0?'var(--red)':'var(--muted)'}">${c.bounced}</td>
+    </tr>
+  `).join('');
+
+  // ── VERTICALS CARDS ────────────────────────────────────────────
+  document.getElementById('verticals-grid').innerHTML = verticals.map(v => `
+    <div class="v-card">
+      <div class="v-name">${esc(v.vertical)}</div>
+      <div class="v-stats">
+        <div class="v-stat-row">
+          <span class="v-stat-label">Open</span>
+          <div class="v-bar-bg"><div class="v-bar" style="width:${Math.min(v.openRate,100)}%;background:${rateColor(v.openRate)}"></div></div>
+          <span class="v-pct" style="color:${rateColor(v.openRate)}">${v.openRate}%</span>
+        </div>
+        <div class="v-stat-row">
+          <span class="v-stat-label">Click</span>
+          <div class="v-bar-bg"><div class="v-bar" style="width:${Math.min(v.clickRate*3,100)}%;background:${rateColor(v.clickRate*3)}"></div></div>
+          <span class="v-pct">${v.clickRate}%</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('verticals-tbody').innerHTML = verticals.map(v => `
+    <tr>
+      <td style="font-weight:500">${esc(v.vertical)}</td>
+      <td>${rateBar(v.openRate, rateColor(v.openRate))}</td>
+      <td>${rateBar(v.clickRate, rateColor(v.clickRate * 3))}</td>
+      <td class="mono">${v.meetings}</td>
+      <td><span class="badge badge-yellow">${esc(v.followupStatus)}</span></td>
+      <td style="color:var(--muted);font-size:11px;max-width:260px">${esc(v.notes)}</td>
+    </tr>
+  `).join('');
+
+  // ── PITCH TABLES ───────────────────────────────────────────────
+  function pitchRow(p) {
+    return `<tr>
+      <td class="mono" style="color:var(--muted)">${esc(p.id)}</td>
+      <td>${esc(p.vertical)}</td>
+      <td style="max-width:320px;font-size:12px">${esc(p.subject)}</td>
+      <td>${scoreBar(p.r)}</td>
+      <td>${scoreBar(p.s)}</td>
+      <td>${scoreBar(p.a)}</td>
+      <td>${scoreBar(p.m)}</td>
+      <td>${verdictBadge(p.verdict)}</td>
+    </tr>`;
+  }
+  document.getElementById('email-pitches-tbody').innerHTML = emailPitches.map(pitchRow).join('');
+  document.getElementById('li-pitches-tbody').innerHTML    = liPitches.map(pitchRow).join('');
+
+  // ── PIPELINE LEAKS ─────────────────────────────────────────────
+  const sevLabel = { critical:'🔴 Critical', warning:'🟡 Warning', info:'🔵 Info' };
+  const sevCls   = { critical:'critical', warning:'warning', info:'info' };
+  document.getElementById('leaks-grid').innerHTML = leaks.map(l => `
+    <div class="leak-card ${sevCls[l.severity]}">
+      <div>
+        <div class="leak-label" style="color:${l.severity==='critical'?'var(--red)':l.severity==='warning'?'var(--yellow)':'var(--accent)'}">${sevLabel[l.severity]}</div>
+      </div>
+      <div>
+        <div class="leak-title">${esc(l.title)}</div>
+        <div class="leak-detail">${esc(l.detail)}</div>
+      </div>
+      <div class="leak-fix">
+        <div class="leak-fix-label">Fix</div>
+        ${esc(l.fix)}
+      </div>
+    </div>
+  `).join('');
+
+  // ── NEXT STEPS ─────────────────────────────────────────────────
+  document.getElementById('steps-grid').innerHTML = nextSteps.map(s => `
+    <div class="step-card">
+      <div class="step-header">
+        ${priorityBadge(s.priority)}
+        <div class="step-title">${esc(s.title)}</div>
+      </div>
+      <div class="step-meta">${esc(s.timeframe)}</div>
+      <div class="step-body">${esc(s.body)}</div>
+    </div>
+  `).join('');
+
+  // ── HYPER EMAILS ───────────────────────────────────────────────
+  document.getElementById('hyper-emails').innerHTML = hyperEmails.map(h => `
+    <div class="hyper-card" style="margin-bottom:10px">
+      <div>
+        <div class="hyper-company">${esc(h.company)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${esc(h.contact)} · ${esc(h.date)}</div>
+        <div class="hyper-note">${esc(h.notes)}</div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          ${h.refUsed==='yes'     ? '<span class="badge badge-blue">Ref Used</span>' : ''}
+          ${h.assetAttached==='yes' ? '<span class="badge badge-purple">Asset Attached</span>' : ''}
+        </div>
+      </div>
+      <div class="hyper-signals">
+        <strong>Signals Used</strong>
+        ${esc(h.signals)}
+      </div>
+      <div class="outcome-booked">
+        ✓ Meeting Booked
+      </div>
+    </div>
+  `).join('');
+
+  // ── HYPER PIPELINE ─────────────────────────────────────────────
+  const pipeDot = { high:'var(--green)', medium:'var(--yellow)', low:'var(--muted)' };
+  document.getElementById('hyper-pipeline').innerHTML = hyperPipeline.map(p => `
+    <div class="pipe-card">
+      <div class="pipe-priority" style="background:${pipeDot[p.priority]};box-shadow:0 0 6px ${pipeDot[p.priority]}"></div>
+      <div>
+        <div class="pipe-company">${esc(p.company)}</div>
+        <div class="pipe-signal">${esc(p.signal)}</div>
+        <div style="margin-top:6px">${opportunityBadge(p.priority)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // ── NEW VERTICALS ──────────────────────────────────────────────
+  document.getElementById('new-verticals').innerHTML = newVerticals.map(v => `
+    <div class="nv-card">
+      <div class="nv-name">
+        ${esc(v.name)}
+        ${opportunityBadge(v.opportunity)}
+      </div>
+      <div class="nv-why">${esc(v.why)}</div>
+      <div class="nv-signal">📍 ${esc(v.signal)}</div>
+    </div>
+  `).join('');
+
+  // ── CHARTS ─────────────────────────────────────────────────────
+  const chartDefaults = {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5a6480', font: { family: 'DM Mono', size: 10 }, maxRotation: 45 } },
+      y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5a6480', font: { family: 'DM Mono', size: 10 } } },
+    },
+    responsive: true,
+    maintainAspectRatio: false,
+  };
+
+  const campNames = sorted.map(c => c.name.length > 14 ? c.name.slice(0,13)+'…' : c.name);
+
+  new Chart(document.getElementById('emailChart'), {
+    type: 'bar',
+    data: {
+      labels: campNames,
+      datasets: [{
+        data: sorted.map(c => c.sent),
+        backgroundColor: 'rgba(79,142,247,0.5)',
+        borderColor: 'rgba(79,142,247,0.9)',
+        borderWidth: 1,
+        borderRadius: 3,
+      }]
+    },
+    options: { ...chartDefaults, plugins: { ...chartDefaults.plugins } },
+  });
+
+  new Chart(document.getElementById('openChart'), {
+    type: 'bar',
+    data: {
+      labels: campNames,
+      datasets: [{
+        data: sorted.map(c => c.openRate),
+        backgroundColor: sorted.map(c => `${rateColor(c.openRate)}55`),
+        borderColor:     sorted.map(c => rateColor(c.openRate)),
+        borderWidth: 1,
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        ...chartDefaults.scales,
+        y: { ...chartDefaults.scales.y, max: 100, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '%' } },
+      },
+    },
+  });
+
+  const liLabels = linkedinVolume.map(l => l.period.length > 10 ? l.period.slice(0,10)+'…' : l.period);
+  new Chart(document.getElementById('liChart'), {
+    type: 'bar',
+    data: {
+      labels: liLabels,
+      datasets: [{
+        data: linkedinVolume.map(l => l.messages),
+        backgroundColor: 'rgba(167,139,250,0.4)',
+        borderColor: 'rgba(167,139,250,0.8)',
+        borderWidth: 1,
+        borderRadius: 3,
+      }]
+    },
+    options: { ...chartDefaults },
+  });
+
+})();
+</script>
+</body>
+</html>

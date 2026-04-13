@@ -4,9 +4,10 @@
   "description": "Auto-syncs Infrasity Google Sheet to salesData.js for the sales dashboard",
   "main": "scripts/sync.js",
   "scripts": {
-    "sync": "node scripts/sync.js",
+    "dev":      "node scripts/dev.js",
+    "sync":     "node scripts/sync.js",
     "sync:dry": "DRY_RUN=true node scripts/sync.js",
-    "start": "node scripts/scheduler.js"
+    "start":    "node scripts/scheduler.js"
   },
   "dependencies": {
     "node-cron": "^3.0.3"
