@@ -1,0 +1,51 @@
+name: Sync Infrasity Sales Data
+
+on:
+  # Runs every day at 4:00 AM IST = 22:30 UTC
+  schedule:
+    - cron: "30 22 * * *"
+
+  # Also allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: infrasity-sync/package.json
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: infrasity-sync
+
+      - name: Run sync
+        # No credentials needed — sheet is public
+        run: node scripts/sync.js
+        working-directory: infrasity-sync
+
+      - name: Commit and push updated salesData.js
+        run: |
+          git config --local user.email "sync-bot@infrasity.com"
+          git config --local user.name "Infrasity Sync Bot"
+          git add dashboard/data/salesData.js
+          git diff --staged --quiet || git commit -m "chore: auto-sync sales data $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload sync logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-logs-${{ github.run_number }}
+          path: infrasity-sync/logs/
+          retention-days: 14
